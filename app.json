@@ -1,0 +1,27 @@
+{
+  "name": "Ghost-MD-MiNi",
+  "description": "Javascript WhatsApp bot 𝐆ʜᴏsᴛ-𝐌ᴅ",
+  "logo": "https://files.catbox.moe/0eylom.jpg",
+  "keywords": ["GHOST-BOT", "GHOST-MD"],
+  "success_url": "/",
+  "stack": "container",
+  
+  "env": {
+    "MONGODB_URL": {
+      "description": "MongoDB connection string for database storage",
+      "required": false
+    },
+    "DB_NAME": {
+      "description": "Database name for MongoDB (default: ghost-md)",
+      "required": false,
+      "value": "ghost-md"
+    }
+  },
+
+  "buildpacks": [
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-nodejs.git"
+    }
+  ],
+  "stack": "heroku-24"
+}
