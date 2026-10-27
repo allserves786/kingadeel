@@ -72,9 +72,9 @@ cmd({
       { quoted: mek }
     );
 
-    // 3. Azbry YouTube MP3 API
+    // 3. Naya API: api-faa.my.id
     const apiUrl =
-      'https://api.azbry.com/api/download/ytmp3?url=' +
+      'https://api-faa.my.id/faa/ytmp3?url=' +
       encodeURIComponent(video.url);
 
     const response = await axios.get(apiUrl, {
@@ -87,20 +87,27 @@ cmd({
 
     const json = response.data;
 
-    // Expected API response:
-    // { status: true, result: { download: "https://..." } }
-    const audioUrl = json?.result?.download;
+    // Response parsing — flexible rakha hai taaki alag structure bhi handle ho
+    let audioUrl = null;
 
-    if (!json?.status || !audioUrl ||
-        typeof audioUrl !== 'string' ||
-        !/^https?:\/\//i.test(audioUrl)) {
-      console.error('PLAY API response:', json);
+    // Common possible paths try karo
+    if (json?.result?.download) audioUrl = json.result.download;
+    else if (json?.result?.url) audioUrl = json.result.url;
+    else if (json?.result?.link) audioUrl = json.result.link;
+    else if (json?.data?.download) audioUrl = json.data.download;
+    else if (json?.data?.url) audioUrl = json.data.url;
+    else if (json?.download) audioUrl = json.download;
+    else if (json?.url) audioUrl = json.url;
+    else if (typeof json === 'string' && json.startsWith('http')) audioUrl = json;
+
+    if (!audioUrl || typeof audioUrl !== 'string' || !/^https?:\/\//i.test(audioUrl)) {
+      console.error('PLAY API response:', JSON.stringify(json).slice(0, 500));
       return await reply(
-        '❌ *Download API failed!*\nPlease try again later.'
+        '❌ *Download API failed!*\nResponse format unexpected.\nPlease try again later.'
       );
     }
 
-    // 4. Send audio using the Baileys-compatible message format
+    // 4. Send audio
     const safeTitle = (video.title || 'song')
       .replace(/[\\/:*?"<>|]/g, '')
       .slice(0, 90);
