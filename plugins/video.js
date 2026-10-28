@@ -55,18 +55,39 @@ const APIS = {
     }
 }
 
+// Browser jaisi headers (403 se bachne ke liye)
+const DL_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+    'Accept': '*/*',
+    'Referer': 'https://www.youtube.com/'
+}
+
+// Saari APIs se links ki list deta hai (ek block ho to doosri try hoti hai)
 async function getDownload(videoUrl) {
+    const results = []
     for (const [name, apiFn] of Object.entries(APIS)) {
         try {
             console.log(`[VIDEO] Trying ${name}...`)
             const result = await apiFn(videoUrl)
             if (result.success && result.downloadUrl) {
-                console.log(`[VIDEO] ${name} success`)
-                return result
+                console.log(`[VIDEO] ${name} link mila`)
+                results.push(result)
             }
         } catch (e) {}
     }
-    return null
+    return results
+}
+
+// Link se buffer download (headers ke saath)
+async function downloadBuffer(url) {
+    const { data } = await axios.get(url, {
+        responseType: 'arraybuffer',
+        headers: DL_HEADERS,
+        timeout: 180000,
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity
+    })
+    return Buffer.from(data)
 }
 
 // ============ VIDEO INFO (link ya search) ============
@@ -106,27 +127,23 @@ async function getVideoInfo(q) {
 
 // ============ SAFE VIDEO SEND ============
 // Pehle URL se bhejta hai, fail ho to buffer download karke bhejta hai
-async function sendVideoSafe(conn, from, mek, downloadUrl, caption) {
-    try {
-        await conn.sendMessage(from, {
-            video: { url: downloadUrl },
-            mimetype: 'video/mp4',
-            caption
-        }, { quoted: mek })
-    } catch (e) {
-        console.error('[VIDEO] url send failed, buffer try:', e.message)
-        const { data } = await axios.get(downloadUrl, {
-            responseType: 'arraybuffer',
-            timeout: 180000,
-            maxContentLength: Infinity,
-            maxBodyLength: Infinity
-        })
-        await conn.sendMessage(from, {
-            video: Buffer.from(data),
-            mimetype: 'video/mp4',
-            caption
-        }, { quoted: mek })
+async function sendVideoSafe(conn, from, mek, results, caption) {
+    let lastErr = null
+    for (const r of results) {
+        try {
+            const buffer = await downloadBuffer(r.downloadUrl)
+            await conn.sendMessage(from, {
+                video: buffer,
+                mimetype: 'video/mp4',
+                caption
+            }, { quoted: mek })
+            return
+        } catch (e) {
+            console.error('[VIDEO] link fail, next try:', e.message)
+            lastErr = e
+        }
     }
+    throw lastErr || new Error('No working download link')
 }
 
 // ============ TIME PARSER (trim ke liye) ============
@@ -212,8 +229,9 @@ Sahi tareeqa: .video <link> trim 00:00:10 00:00:30
 
         await reply("⬇️ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*")
 
-        const result = await getDownload(info.url)
-        if (!result) return reply("❌ *Failed to fetch video*")
+        const results = await getDownload(info.url)
+        if (!results.length) return reply("❌ *Failed to fetch video*")
+        const result = results[0]
 
         const finalTitle = result.title || info.title || 'Video'
 
@@ -252,14 +270,20 @@ Sahi tareeqa: .video <link> trim 00:00:10 00:00:30
         if (trimStart && trimDuration) {
             await reply("✂️ *ᴛʀɪᴍᴍɪɴɢ ᴠɪᴅᴇᴏ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*")
 
-            // Download full video to temp
-            const writer = fs.createWriteStream(tempInput)
-            const response = await axios({ url: result.downloadUrl, method: 'GET', responseType: 'stream' })
-            response.data.pipe(writer)
-            await new Promise((resolve, reject) => {
-                writer.on('finish', resolve)
-                writer.on('error', reject)
-            })
+            // Download full video to temp (jo link chale wahi use hoga)
+            let downloaded = false
+            let lastErr = null
+            for (const r of results) {
+                try {
+                    fs.writeFileSync(tempInput, await downloadBuffer(r.downloadUrl))
+                    downloaded = true
+                    break
+                } catch (e) {
+                    console.error('[VIDEO] trim download fail, next try:', e.message)
+                    lastErr = e
+                }
+            }
+            if (!downloaded) throw lastErr || new Error('Download failed')
 
             await trimVideo(tempInput, tempOutput, trimStart, trimDuration)
 
@@ -269,7 +293,7 @@ Sahi tareeqa: .video <link> trim 00:00:10 00:00:30
                 caption: poweredCaption
             }, { quoted: mek })
         } else {
-            await sendVideoSafe(conn, from, mek, result.downloadUrl, poweredCaption)
+            await sendVideoSafe(conn, from, mek, results, poweredCaption)
         }
 
     } catch (err) {
@@ -308,16 +332,26 @@ Example:
 
         await reply("⬇️ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*")
 
-        const result = await getDownload(info.url)
-        if (!result) return reply("❌ *Failed to fetch video*")
+        const results = await getDownload(info.url)
+        if (!results.length) return reply("❌ *Failed to fetch video*")
+
+        let result = null
+        let videoBuffer = null
+        let lastErr = null
+        for (const r of results) {
+            try {
+                videoBuffer = await downloadBuffer(r.downloadUrl)
+                result = r
+                break
+            } catch (e) {
+                console.error('[VIDEODOC] link fail, next try:', e.message)
+                lastErr = e
+            }
+        }
+        if (!videoBuffer) throw lastErr || new Error('Download failed')
 
         const finalTitle = result.title || info.title || 'video'
         const safeFileName = finalTitle.replace(/[^\w\s-]/g, '').trim().substring(0, 50) || 'video'
-
-        const { data: videoBuffer } = await axios.get(result.downloadUrl, {
-            responseType: 'arraybuffer',
-            timeout: 120000
-        })
 
         const caption =
 `*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
@@ -331,7 +365,7 @@ Example:
 *╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`
 
         await conn.sendMessage(from, {
-            document: Buffer.from(videoBuffer),
+            document: videoBuffer,
             mimetype: 'video/mp4',
             fileName: `${safeFileName}.mp4`,
             caption
