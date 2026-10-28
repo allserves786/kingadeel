@@ -26,7 +26,7 @@ function sniffAudio(buf) {
 
 cmd({
   pattern: 'audio',
-  alias: ['mp3', 'song', 'gana', 'play', 'ytmp3', 'ytaudio', 'playaudio', 'music', 'melody'],
+  alias: ['mp3', 'song', 'ganaa', 'songy', 'ytmp3', 'ytaudio', 'playaudio', 'music', 'melody'],
   desc: 'Download YouTube Audio as MP3',
   category: 'download',
   react: '🎵',
