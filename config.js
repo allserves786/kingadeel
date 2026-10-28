@@ -78,7 +78,7 @@ const config = {
     OWNER_NAME: '𝐆ʜᴏsᴛ-𝐌ᴅ',
     OWNER_NUMBER: '923174838990',
     DEV: '923300005253',
-    IK_IMAGE_PATH: './lib/love.jpg',
+    IK_IMAGE_PATH: './lib/qadeer.jpg',
     BOT_IMAGE: 'https://i.ibb.co/wrY65Sg0/GHOST-MD.jpg',
     
     // System Configuration
@@ -139,7 +139,7 @@ const config = {
         OWNER_NAME: '𝐆ʜᴏsᴛ-𝐌ᴅ',
         OWNER_NUMBER: '923174838990',
         DEV: '923174838990',
-        DESCRIPTION: '*© POWERED BY 𝐆ʜᴏsᴛ-𝐌ᴅ*',
+        DESCRIPTION: '*© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*',
         STICKER_NAME: '𝐆ʜᴏsᴛ-𝐌ᴅ',
         MODE: 'public',
         PREFIX: '.',
