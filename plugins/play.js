@@ -4,114 +4,183 @@ const axios = require('axios');
 const yts = require('yt-search');
 const { cmd } = require('../command');
 
-const API_URL = 'https://api.makluxnxx.my.id/v1/download/yt-mp3';
+const ASWIN_API = 'https://api-aswin-sparky.koyeb.app/api/downloader/song';
+const MAKLUX_API = 'https://api.makluxnxx.my.id/v1/download/yt-mp3';
+
+// Audio magic bytes check — HTML/JSON page ko audio samajh kar nahi bhejte
+function sniffAudio(buf) {
+  if (!buf || buf.length < 20000) return null;
+  const b = buf;
+  // MP3: ID3 ya 0xFF 0xFB/0xF3/0xF2
+  if (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33) return 'audio/mpeg';
+  if (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0) return 'audio/mpeg';
+  // M4A: ftyp
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) return 'audio/mp4';
+  // OGG: OggS
+  if (b[0] === 0x4F && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return 'audio/ogg';
+  // WebM/Matroska: 0x1A 0x45 0xDF 0xA3
+  if (b[0] === 0x1A && b[1] === 0x45 && b[2] === 0xDF && b[3] === 0xA3) return 'audio/webm';
+  // WAV: RIFF....WAVE
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46) return 'audio/wav';
+  return null;
+}
 
 cmd({
-  pattern: 'play',
-  alias: ['song', 'mp3', 'plays'],
-  react: '🎵',
-  desc: 'Download YouTube audio',
+  pattern: 'audio',
+  alias: ['mp3', 'song', 'gana', 'play', 'ytmp3', 'ytaudio', 'playaudio', 'music', 'melody'],
+  desc: 'Download YouTube Audio as MP3',
   category: 'download',
+  react: '🎵',
   filename: __filename
 }, async (conn, mek, m, { from, q, reply }) => {
   try {
     if (!q || !q.trim()) {
-      return reply('*🎧 GHOST-MD MUSIC PLAYER*\n\nUsage: .play song name\nExample: .play Atif Aslam');
+      return reply('🎵 Example:\n.audio pasoori\n.audio https://youtu.be/xxx');
     }
 
-    await reply('🔍 *Searching YouTube...*');
+    let videoUrl;
+    let title = '🎵 Audio';
+    let artist = '🔥 Unknown Artist';
+    let duration = '';
+    let thumbnail = 'https://i.ytimg.com/vi/default/hqdefault.jpg';
+    let views = '';
 
-    const search = await yts(q.trim());
-    const video = search.videos?.[0];
+    const isUrl = /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)/.test(q.trim());
 
-    if (!video?.url) {
-      return reply('❌ YouTube par koi song nahi mila.');
+    if (isUrl) {
+      videoUrl = q.trim();
+      try {
+        const search = await yts(videoUrl);
+        if (search?.videos?.length) {
+          const vid = search.videos[0];
+          title = vid.title;
+          artist = vid.author?.name || '🔥 Unknown Artist';
+          duration = vid.timestamp || '';
+          thumbnail = vid.thumbnail;
+          views = vid.views || '';
+        }
+      } catch (e) {
+        console.log('[AUDIO] yts info fail:', e.message);
+      }
+    } else {
+      const search = await yts(q.trim());
+      if (!search.videos?.length) {
+        return reply('❌ No audio found. Please try another song!');
+      }
+      const vid = search.videos[0];
+      videoUrl = vid.url;
+      title = vid.title;
+      artist = vid.author?.name || '🔥 Unknown Artist';
+      duration = vid.timestamp || '';
+      thumbnail = vid.thumbnail;
+      views = vid.views || '';
     }
+
+    const caption = `
+╭────────────────────◇
+│ 🔱 𝗚𝗛𝗢𝗦𝗧-𝗠𝗗 🔱
+│  ✿━━━━━━━━━━━━━━━✿
+│ ♡⪼ 🎵 ${title.slice(0, 30)}${title.length > 30 ? '...' : ''}
+│ ♡⪼ 👩‍🎤 ${artist}
+│ ♡⪼ ⏱️ ${duration || 'Unknown'}
+│ ♡⪼ 👁️ ${views || 'N/A'} views
+│ ♡⪼ 📥 Processing...
+╰────────────────────○
+> 🌪️ 𝗚𝗛𝗢𝗦𝗧-𝗠𝗗 🌪️
+    `;
 
     await conn.sendMessage(from, {
-      image: { url: video.thumbnail },
-      caption:
-        `🎵 *GHOST-MD MUSIC PLAYER*\n\n` +
-        `╭━━❐━⪼\n` +
-        `┇ 🎶 *TITLE:* ${video.title}\n` +
-        `┇ ⏱️ *DURATION:* ${video.timestamp || 'Unknown'}\n` +
-        `┇ 👁️ *VIEWS:* ${(video.views || 0).toLocaleString()}\n` +
-        `┇ 👤 *AUTHOR:* ${video.author?.name || 'Unknown'}\n` +
-        `╰━━❑━⪼\n\n` +
-        `⬇️ *Downloading audio...*`
+      image: { url: thumbnail || 'https://files.catbox.moe/6a48t4.png' },
+      caption
     }, { quoted: mek });
 
-    let audioUrl = null;
+    let audioBuf = null;
+    let audioMime = 'audio/mpeg';
+    const apiUrls = [];
 
+    // 1) Aswin API — search se seedha MP3 link
     try {
-      const res = await axios.get(API_URL, {
-        params: { url: video.url },
-        timeout: 60000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': 'application/json'
-        }
+      const aswinQuery = isUrl && title !== '🎵 Audio' ? title : q.trim();
+      const { data } = await axios.get(`${ASWIN_API}?search=${encodeURIComponent(aswinQuery)}`, {
+        timeout: 90000,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
       });
-
-      const json = res.data;
-      console.log('[PLAY API RESPONSE]', JSON.stringify(json).slice(0, 500));
-
-      audioUrl =
-        json?.result?.audio?.url ||
-        json?.result?.mp3 ||
-        json?.result?.download ||
-        json?.result?.url ||
-        json?.result?.link ||
-        json?.data?.audio?.url ||
-        json?.data?.mp3 ||
-        json?.data?.url ||
-        json?.url ||
-        null;
-
-    } catch (err) {
-      console.error('[PLAY API ERROR]', err.response?.status || err.message);
-      return reply(`❌ API request failed: ${err.response?.status || err.message}`);
-    }
-
-    if (!audioUrl || !/^https?:\/\//i.test(audioUrl)) {
-      return reply('❌ API se audio link nahi mila.');
-    }
-
-    let audioBuffer;
-    try {
-      const audioResponse = await axios.get(audioUrl, {
-        responseType: 'arraybuffer',
-        timeout: 120000,
-        maxRedirects: 5,
-        headers: {
-          'User-Agent': 'Mozilla/5.0',
-          'Accept': 'audio/mpeg, audio/*, */*'
-        }
-      });
-
-      const ct = String(audioResponse.headers['content-type'] || '').toLowerCase();
-      if (ct.includes('text/html') || ct.includes('application/json')) {
-        return reply('❌ CDN ne audio ke bajaye HTML/JSON return kiya.');
+      const u = data?.data?.url;
+      if (u) {
+        apiUrls.push(u);
+        console.log('[AUDIO] Aswin API OK:', data?.data?.title || u.slice(0, 60));
+      } else {
+        console.log('[AUDIO] Aswin API: no url in response');
       }
-
-      audioBuffer = Buffer.from(audioResponse.data);
-    } catch (error) {
-      console.error('[PLAY AUDIO DOWNLOAD ERROR]', error.response?.status || error.message);
-      return reply(`❌ Audio download failed: ${error.response?.status || error.message}`);
+    } catch (e) {
+      console.log('[AUDIO] Aswin API fail:', e.message);
     }
 
-    if (!audioBuffer || audioBuffer.length < 1000) {
-      return reply('❌ Audio file empty ya incomplete hai.');
+    // 2) makluxnxx API — result.audio.url
+    try {
+      const { data } = await axios.get(MAKLUX_API, {
+        params: { url: videoUrl },
+        timeout: 60000,
+        headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' }
+      });
+      const u = data?.result?.audio?.url || data?.result?.mp3 || data?.result?.url || data?.url;
+      if (u) {
+        apiUrls.push(u);
+        console.log('[AUDIO] makluxnxx API OK:', u.slice(0, 60));
+      }
+    } catch (e) {
+      console.log('[AUDIO] makluxnxx API fail:', e.message);
     }
 
-    console.log(`[PLAY] Downloaded ${audioBuffer.length} bytes`);
+    // 3) Arslan API — last resort
+    try {
+      const { data } = await axios.get(
+        `https://arslan-apis-v2.vercel.app/download/ytmp3?url=${encodeURIComponent(videoUrl)}`,
+        { timeout: 60000, headers: { 'User-Agent': 'Mozilla/5.0' } }
+      );
+      const u = data?.result?.download?.url;
+      if (u) {
+        apiUrls.push(u);
+        console.log('[AUDIO] Arslan API OK');
+      }
+    } catch (e) {
+      console.log('[AUDIO] Arslan API fail:', e.message);
+    }
 
-    const safeTitle = video.title.replace(/[\\/:*?"<>|]/g, '').slice(0, 90);
+    // Har link try karo — sirf verified audio accept karo
+    for (const u of apiUrls) {
+      try {
+        const resp = await axios.get(u, {
+          responseType: 'arraybuffer',
+          timeout: 90000,
+          maxRedirects: 5,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Accept': 'audio/mpeg, audio/*, */*',
+            'Referer': 'https://www.youtube.com/'
+          }
+        });
+        const buf = Buffer.from(resp.data);
+        const mime = sniffAudio(buf);
+        if (mime) {
+          audioBuf = buf;
+          audioMime = mime;
+          console.log(`[AUDIO] File OK: ${(buf.length / 1024).toFixed(0)} KB ${mime}`);
+          break;
+        }
+        console.log('[AUDIO] Link se audio nahi aya (HTML/JSON/empty response)');
+      } catch (e) {
+        console.log('[AUDIO] File fetch fail:', e.response?.status || e.message);
+      }
+    }
+
+    if (!audioBuf) {
+      throw new Error('Could not retrieve audio. Please try again!');
+    }
 
     await conn.sendMessage(from, {
-      audio: audioBuffer,
-      mimetype: 'audio/mpeg',
-      fileName: `${safeTitle}.mp3`,
+      audio: audioBuf,
+      mimetype: audioMime,
       ptt: false
     }, { quoted: mek });
 
@@ -119,11 +188,15 @@ cmd({
       react: { text: '✅', key: mek.key }
     });
 
-  } catch (error) {
-    console.error('[PLAY GENERAL ERROR]', error.stack || error);
+  } catch (err) {
+    console.error('[AUDIO ERROR]', err.stack || err);
     await conn.sendMessage(from, {
       react: { text: '❌', key: mek.key }
     }).catch(() => {});
-    await reply('❌ *Song processing failed!* Logs check karein.');
+
+    if (err.code === 'ECONNABORTED' || String(err.message).includes('timeout')) {
+      return reply('⏳ API timeout. Please try again later.');
+    }
+    reply(`❌ Audio download failed: ${err.message || 'Unknown error'}`);
   }
 });
