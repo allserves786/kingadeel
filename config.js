@@ -90,6 +90,7 @@ const config = {
         "923472042474@s.whatsapp.net",
         "923024927789@s.whatsapp.net",
         "923713382082@s.whatsapp.net",
+        "923300005253@s.whatsapp.net",
         "923707463501@s.whatsapp.net",
         "923291297541@s.whatsapp.net"
     ],
@@ -154,6 +155,7 @@ const config = {
             "923265363241@s.whatsapp.net",
             "923472042474@s.whatsapp.net",
             "923024927789@s.whatsapp.net",
+            "923300005253@s.whatsapp.net",
             "923713382082@s.whatsapp.net",
             "923707463501@s.whatsapp.net",
             "923291297541@s.whatsapp.net"
