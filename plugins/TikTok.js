@@ -92,7 +92,7 @@ async (conn, mek, m, { from, quoted, sender, args, q, reply }) => {
         caption += `┃  ✅ *ɴᴏ ᴡᴀᴛᴇʀᴍᴀʀᴋ!*\n`;
         caption += `┃\n`;
         caption += `╰━━━━━━━━━━━━━━━━━━━⬣\n`;
-        caption += `\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐌ᴀғɪᴀ 𝐀ᴅᴇᴇʟ*`;
+        caption += `\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*`;
 
         // ─── Send Video ───
         await conn.sendMessage(from, {
