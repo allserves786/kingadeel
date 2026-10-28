@@ -27,12 +27,12 @@ const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
 
 if (validCmds.length === 0) return ''; // Skip empty categories  
   
-let title = `\n\`『 ${category.toUpperCase()} 』\`\n╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷\n`;  
+let title = `\n\`『 ${category.toUpperCase()} 』\`\n╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷\n`;  
 let body = validCmds.map(cmd => {  
     const commandName = cmd.pattern || '';  
     return `*┋ ⋄ ${toSmallCaps(commandName)}*`;  
 }).join('\n');  
-let footer = `\n╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷`;  
+let footer = `\n╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷`;  
 return `${title}${body}${footer}`;
 
 };
@@ -110,14 +110,14 @@ let totalCommands = Object.keys(commands).length;
     const BOT_IMAGE = userConfig?.BOT_IMAGE || userConfig?.BOT_MEDIA_URL || config.BOT_IMAGE || config.BOT_MEDIA_URL;  
       
     // Main menu text with new bar styles  
-    let dec =  `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
+    let dec =  `*╭┈───〔 ${BOT_NAME} 〕───⊷*
 *┋⋄ ➠  Owner: ${OWNER_NAME}*
 *┋⋄ ➠  Commands: ${totalCommands}*
 *┋⋄ ➠  Runtime: ${runtime(process.uptime())}*
 *┋⋄ ➠  Prefix: ${PREFIX}*
 *┋⋄ ➠  Mode: ${MODE}*
 *┋⋄ ➠  Version: ${VERSION}*
-╰───────────────────⊷
+╰─────────────────⊷
 ${menuSections}
 
 > ${DESCRIPTION || ''}`;
