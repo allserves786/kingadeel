@@ -81,7 +81,7 @@ ${config.PREFIX || '.'}tiktok https://vm.tiktok.com/xxxxx`);
 
         // ─── Build Caption ───
         const caption =
-`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
 *┇•* 🎵 *𝐆ʜᴏsᴛ - xᴅ ᴛɪᴋᴛᴏᴋ ᴅʟ*
 *┇•* ℹ️ *ᴛɪᴛʟᴇ: ${title}*
 *┇•* 👤 *ᴄʀᴇᴀᴛᴏʀ: ${author}*
@@ -90,11 +90,11 @@ ${config.PREFIX || '.'}tiktok https://vm.tiktok.com/xxxxx`);
 *┇•* ❤️ *ʟɪᴋᴇs: ${likes.toLocaleString()}*
 *┇•* ⚡ *sᴘᴇᴇᴅ: ${responseTime}s*
 *┇•* ✅ *ɴᴏ ᴡᴀᴛᴇʀᴍᴀʀᴋ*
-*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
 
-*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*╭┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
 *┇•* *_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ_*
-*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
+*╰┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
 
         // ─── Send Video ───
         await conn.sendMessage(from, {
