@@ -20,41 +20,75 @@ const api = axios.create({
     httpsAgent: httpsAgent
 });
 
-cmd({ 
+cmd({
     pattern: "fb",
     alias: ["facebook"],
     desc: "Download Facebook videos (HD only)",
     category: "download",
+    react: "🎥",
     filename: __filename
 }, async (conn, mek, m, { from, q, reply, userConfig }) => {
-    try { 
-        if (!q) return reply("📌 Please provide a Facebook video link.");
-        if (!q.includes("facebook.com")) return reply("❌ Invalid Facebook link.");
+    try {
+        if (!q) return reply(
+`❌ *Please provide a Facebook video link*
+Example:
+.fb https://www.facebook.com/xxx`);
+        if (!q.includes("facebook.com")) return reply("❌ *Invalid Facebook link*");
 
         await conn.sendMessage(from, { react: { text: "⏳", key: m.key } });
+
+        await reply("⏳ *ꜱᴇᴀʀᴄʜɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*");
 
         const apiUrl = `https://api-aswin-sparky.koyeb.app/api/downloader/fbdl?url=${encodeURIComponent(q)}`;
         const { data } = await api.get(apiUrl);
 
         if (!data.status || !data.data || !data.data.high) {
-            return reply("❌ Failed to fetch Facebook video. Try another link.");
+            return reply("❌ *Failed to fetch Facebook video. Try another link*");
         }
 
         const { title, thumbnail, high } = data.data;
 
-        const caption = `🎬 *Facebook Video Downloader*\n\n📖 *Title:* ${title}\n\n🔰 *${userConfig?.CAPTION || "Powered by ᴛᴇᴀᴍ ᴢᴇᴇ"}*`;
+        await reply("⬇️ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*");
 
-        await conn.sendMessage(from, { 
-            video: { url: high }, 
-            caption: caption, 
-            contextInfo: { mentionedJid: [m.sender] } 
+        const infoCaption =
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* 🎥 *𝐆ʜᴏsᴛ - xᴅ ꜰʙ ᴅʟ*
+*┇•* ℹ️ *ᴛɪᴛʟᴇ: ${title || 'N/A'}*
+*┇•* 🎞️ *ǫᴜᴀʟɪᴛʏ: ʜᴅ*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
+
+        // Thumbnail + info pehle
+        try {
+            if (thumbnail) {
+                await conn.sendMessage(from, {
+                    image: { url: thumbnail },
+                    caption: infoCaption
+                }, { quoted: mek });
+            } else {
+                await reply(infoCaption);
+            }
+        } catch (e) {
+            console.error("Facebook thumbnail send failed:", e.message);
+            try { await reply(infoCaption); } catch (e2) {}
+        }
+
+        const poweredCaption =
+`
+*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* *_${userConfig?.CAPTION || "ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ"}_*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
+
+        await conn.sendMessage(from, {
+            video: { url: high },
+            caption: poweredCaption,
+            contextInfo: { mentionedJid: [m.sender] }
         }, { quoted: mek });
 
         await conn.sendMessage(from, { react: { text: "✅", key: m.key } });
 
-    } catch (e) { 
+    } catch (e) {
         console.error("Facebook HD Downloader Error:", e);
-        reply(`❌ Error occurred: ${e.message}`);
+        reply(`❌ *An error occurred while downloading video*\n\n_${e.message}_`);
         await conn.sendMessage(from, { react: { text: "❌", key: m.key } });
     }
 });
