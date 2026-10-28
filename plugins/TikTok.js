@@ -44,17 +44,20 @@ async (conn, mek, m, { from, quoted, sender, args, q, reply }) => {
 
         // ─── Check URL ───
         if (!q) {
-            return reply(`*⚠️ ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴀ ᴛɪᴋᴛᴏᴋ ʟɪɴᴋ!*\n\n*ᴇxᴀᴍᴘʟᴇ:*\n${config.PREFIX || '.'}tiktok https://vm.tiktok.com/xxxxx`);
+            return reply(
+`❌ *Please provide a TikTok link*
+Example:
+${config.PREFIX || '.'}tiktok https://vm.tiktok.com/xxxxx`);
         }
 
         const url = q.trim();
         if (!url.includes('tiktok.com') && !url.includes('vm.tiktok.com')) {
-            return reply(`*❌ ɪɴᴠᴀʟɪᴅ ᴛɪᴋᴛᴏᴋ ʟɪɴᴋ!*\n\nᴍᴀᴋᴇ sᴜʀᴇ ᴛʜᴇ ʟɪɴᴋ ᴄᴏɴᴛᴀɪɴs *tiktok.com*`);
+            return reply("❌ *Invalid TikTok link*");
         }
 
         // ─── Loading Message ───
         const loadingMsg = await conn.sendMessage(from, {
-            text: `⏳ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ ᴛɪᴋᴛᴏᴋ...* ${textEmoji}\n\n> *ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ...*`
+            text: `⬇️ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...* ${textEmoji}`
         }, { quoted: mek });
 
         // ─── API Call ───
@@ -62,7 +65,7 @@ async (conn, mek, m, { from, quoted, sender, args, q, reply }) => {
         const { data } = await axios.get(apiUrl, { timeout: 30000 });
 
         if (!data.data || !data.data.play) {
-            return reply(`*❌ ғᴀɪʟᴇᴅ ᴛᴏ ғᴇᴛᴄʜ ᴠɪᴅᴇᴏ!*\n\nᴛʀʏ ᴀɴᴏᴛʜᴇʀ ʟɪɴᴋ ᴏʀ ᴄʜᴇᴄᴋ ɪғ ᴛʜᴇ ᴠɪᴅᴇᴏ ɪs ᴘᴜʙʟɪᴄ.`);
+            return reply("❌ *Failed to fetch video. Try another link or check if the video is public*");
         }
 
         const videoData = data.data;
@@ -77,22 +80,21 @@ async (conn, mek, m, { from, quoted, sender, args, q, reply }) => {
         const responseTime = ((end - start) / 1000).toFixed(2);
 
         // ─── Build Caption ───
-        let caption = `╭━━━━━━━━━━━━━━━━━━╮\n`;
-        caption += `┃  ${botName}\n`;
-        caption += `╰━━━━━━━━━━━━━━━━━━━⬣\n\n`;
-        caption += `╭━━━━〔 🎵 ᴛɪᴋᴛᴏᴋ ᴅʟ 🎵 〕━━━━╮\n`;
-        caption += `┃\n`;
-        caption += `┃  👤 *ᴄʀᴇᴀᴛᴏʀ:* ${author}\n`;
-        caption += `┃  📝 *ᴛɪᴛʟᴇ:* ${title.substring(0, 30)}${title.length > 30 ? '...' : ''}\n`;
-        caption += `┃  ⏱️ *ᴅᴜʀᴀᴛɪᴏɴ:* ${duration}s\n`;
-        caption += `┃  👁️ *ᴠɪᴇᴡs:* ${views.toLocaleString()}\n`;
-        caption += `┃  ❤️ *ʟɪᴋᴇs:* ${likes.toLocaleString()}\n`;
-        caption += `┃  ⚡ *sᴘᴇᴇᴅ:* ${responseTime}s\n`;
-        caption += `┃\n`;
-        caption += `┃  ✅ *ɴᴏ ᴡᴀᴛᴇʀᴍᴀʀᴋ!*\n`;
-        caption += `┃\n`;
-        caption += `╰━━━━━━━━━━━━━━━━━━━⬣\n`;
-        caption += `\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*`;
+        const caption =
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* 🎵 *𝐆ʜᴏsᴛ - xᴅ ᴛɪᴋᴛᴏᴋ ᴅʟ*
+*┇•* ℹ️ *ᴛɪᴛʟᴇ: ${title}*
+*┇•* 👤 *ᴄʀᴇᴀᴛᴏʀ: ${author}*
+*┇•* ⌛ *ᴅᴜʀᴀᴛɪᴏɴ: ${duration}s*
+*┇•* 👁️ *ᴠɪᴇᴡs: ${views.toLocaleString()}*
+*┇•* ❤️ *ʟɪᴋᴇs: ${likes.toLocaleString()}*
+*┇•* ⚡ *sᴘᴇᴇᴅ: ${responseTime}s*
+*┇•* ✅ *ɴᴏ ᴡᴀᴛᴇʀᴍᴀʀᴋ*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+
+*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* *_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ_*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
 
         // ─── Send Video ───
         await conn.sendMessage(from, {
@@ -112,6 +114,6 @@ async (conn, mek, m, { from, quoted, sender, args, q, reply }) => {
 
     } catch (e) {
         console.error("Error in tiktok command:", e);
-        reply(`*❌ ᴇʀʀᴏʀ:*\n\`\`\`${e.message}\`\`\`\n\n*ᴛɪᴘ:* ᴍᴀᴋᴇ sᴜʀᴇ ᴛʜᴇ ʟɪɴᴋ ɪs ᴠᴀʟɪᴅ ᴀɴᴅ ᴘᴜʙʟɪᴄ.`);
+        reply(`❌ *An error occurred while downloading video*\n\n_${e.message}_`);
     }
 });
