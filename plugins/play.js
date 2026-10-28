@@ -4,11 +4,7 @@ const axios = require('axios');
 const yts = require('yt-search');
 const { cmd } = require('../command');
 
-// دو APIs، ترتیب سے آزمائیں گے
-const API_LIST = [
-  { name: 'faa', url: 'https://api-faa.my.id/faa/ytmp3' },
-  { name: 'makluxnxx', url: 'https://api.makluxnxx.my.id/v1/download/yt-mp3' }
-];
+const API_URL = 'https://api.makluxnxx.my.id/v1/download/yt-mp3';
 
 cmd({
   pattern: 'play',
@@ -20,11 +16,7 @@ cmd({
 }, async (conn, mek, m, { from, q, reply }) => {
   try {
     if (!q || !q.trim()) {
-      return reply(
-        '*🎧 GHOST-MD MUSIC PLAYER*\n\n' +
-        'Usage: .play song name\n' +
-        'Example: .play Atif Aslam'
-      );
+      return reply('*🎧 GHOST-MD MUSIC PLAYER*\n\nUsage: .play song name\nExample: .play Atif Aslam');
     }
 
     await reply('🔍 *Searching YouTube...*');
@@ -50,73 +42,41 @@ cmd({
     }, { quoted: mek });
 
     let audioUrl = null;
-    let usedApi = null;
-    let lastError = null;
 
-    // ترتیب سے دونوں APIs آزمائیں
-    for (const api of API_LIST) {
-      try {
-        console.log(`[PLAY] Trying API: ${api.name}`);
-        const res = await axios.get(api.url, {
-          params: { url: video.url },
-          timeout: 60000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0',
-            'Accept': 'application/json'
-          }
-        });
-
-        const json = res.data;
-        console.log(`[PLAY] ${api.name} response:`, JSON.stringify(json).slice(0, 800));
-
-        // مختلف ممکنہ field paths کو cover کریں
-        const candidates = [
-          json?.result?.mp3,
-          json?.result?.download,
-          json?.result?.url,
-          json?.result?.link,
-          json?.result?.audio,
-          json?.data?.mp3,
-          json?.data?.download,
-          json?.data?.url,
-          json?.data?.link,
-          json?.data?.audio,
-          json?.mp3,
-          json?.download,
-          json?.url,
-          json?.link,
-          json?.audio
-        ];
-
-        for (const candidate of candidates) {
-          if (typeof candidate === 'string' && /^https?:\/\//i.test(candidate)) {
-            audioUrl = candidate;
-            usedApi = api.name;
-            break;
-          }
+    try {
+      const res = await axios.get(API_URL, {
+        params: { url: video.url },
+        timeout: 60000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0',
+          'Accept': 'application/json'
         }
+      });
 
-        if (audioUrl) {
-          console.log(`[PLAY] Audio URL found via ${api.name}`);
-          break;
-        }
+      const json = res.data;
+      console.log('[PLAY API RESPONSE]', JSON.stringify(json).slice(0, 500));
 
-        lastError = `API ${api.name}: audio link field not found`;
-      } catch (e) {
-        lastError = `API ${api.name}: ${e.response?.status || e.message}`;
-        console.error(`[PLAY] ${api.name} failed:`, lastError);
-      }
+      audioUrl =
+        json?.result?.audio?.url ||
+        json?.result?.mp3 ||
+        json?.result?.download ||
+        json?.result?.url ||
+        json?.result?.link ||
+        json?.data?.audio?.url ||
+        json?.data?.mp3 ||
+        json?.data?.url ||
+        json?.url ||
+        null;
+
+    } catch (err) {
+      console.error('[PLAY API ERROR]', err.response?.status || err.message);
+      return reply(`❌ API request failed: ${err.response?.status || err.message}`);
     }
 
-    if (!audioUrl) {
-      console.error('[PLAY] All APIs failed:', lastError);
-      return reply(
-        `❌ *Dono API fail ho gayi.*\n\nLast error: ${lastError || 'Unknown'}\n\n` +
-        'Mumkin hai dono APIs ab available na hon. Logs check karein.'
-      );
+    if (!audioUrl || !/^https?:\/\//i.test(audioUrl)) {
+      return reply('❌ API se audio link nahi mila.');
     }
 
-    // Audio download
     let audioBuffer;
     try {
       const audioResponse = await axios.get(audioUrl, {
@@ -129,14 +89,14 @@ cmd({
         }
       });
 
-      const contentType = String(audioResponse.headers['content-type'] || '').toLowerCase();
-      if (contentType.includes('text/html') || contentType.includes('application/json')) {
+      const ct = String(audioResponse.headers['content-type'] || '').toLowerCase();
+      if (ct.includes('text/html') || ct.includes('application/json')) {
         return reply('❌ CDN ne audio ke bajaye HTML/JSON return kiya.');
       }
 
       audioBuffer = Buffer.from(audioResponse.data);
     } catch (error) {
-      console.error('[PLAY AUDIO DOWNLOAD ERROR]', error.message);
+      console.error('[PLAY AUDIO DOWNLOAD ERROR]', error.response?.status || error.message);
       return reply(`❌ Audio download failed: ${error.response?.status || error.message}`);
     }
 
@@ -144,7 +104,7 @@ cmd({
       return reply('❌ Audio file empty ya incomplete hai.');
     }
 
-    console.log(`[PLAY] Downloaded ${audioBuffer.length} bytes (via ${usedApi})`);
+    console.log(`[PLAY] Downloaded ${audioBuffer.length} bytes`);
 
     const safeTitle = video.title.replace(/[\\/:*?"<>|]/g, '').slice(0, 90);
 
