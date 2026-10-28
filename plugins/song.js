@@ -33,7 +33,11 @@ cmd({
 }, async (conn, mek, m, { from, q, reply }) => {
   try {
     if (!q || !q.trim()) {
-      return reply('🎵 Example:\n.play pasoori\n.play https://youtu.be/xxx');
+      return reply(
+`❌ *Please provide a song name or YouTube link*
+Example:
+.play pasoori
+.play https://youtu.be/xxx`);
     }
 
     let videoUrl;
@@ -63,7 +67,7 @@ cmd({
     } else {
       const search = await yts(q.trim());
       if (!search.videos?.length) {
-        return reply('❌ No audio found. Please try another song!');
+        return reply('❌ *No results found*');
       }
       const vid = search.videos[0];
       videoUrl = vid.url;
@@ -74,16 +78,19 @@ cmd({
       views = vid.views || '';
     }
 
-    const caption = `
-*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
-*│ ◉ 🎵 ${title.slice(0, 30)}${title.length > 30 ? '...' : ''}*
-*│ ◉ 👩‍🎤 ${artist}*
-*│ ◉ ⏱️ ${duration || 'Unknown'}*
-*│ ◉ 👁️ ${views || 'N/A'} views*
-*│ ◉ 📥 Processing...*
-*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
-> 🌪️ 𝗚𝗛𝗢𝗦𝗧-𝗠𝗗 🌪️
-    `;
+    const caption =
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* 🎵 *𝐆ʜᴏsᴛ - xᴅ ᴀᴜᴅɪᴏ ᴅʟ*
+*┇•* ℹ️ *ᴛɪᴛʟᴇ: ${title}*
+*┇•* ⌛ *ᴅᴜʀᴀᴛɪᴏɴ: ${duration || 'N/A'}*
+*┇•* 👁️ *ᴠɪᴇᴡs: ${views?.toLocaleString?.() || 'N/A'}*
+*┇•* 📡 *ᴄʜᴀɴɴᴇʟ: ${artist}*
+*┇•* 📥 *ꜱᴛᴀᴛᴜꜱ: ᴘʀᴏᴄᴇssɪɴɢ...*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+
+*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* *_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ_*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
 
     await conn.sendMessage(from, {
       image: { url: thumbnail || 'https://files.catbox.moe/6a48t4.png' },
@@ -175,8 +182,8 @@ cmd({
     }).catch(() => {});
 
     if (err.code === 'ECONNABORTED' || String(err.message).includes('timeout')) {
-      return reply('⏳ API timeout. Please try again later.');
+      return reply('⏳ *API timeout. Please try again later.*');
     }
-    reply(`❌ Audio download failed: ${err.message || 'Unknown error'}`);
+    reply(`❌ *An error occurred while downloading audio*\n\n_${err.message || 'Unknown error'}_`);
   }
 });
