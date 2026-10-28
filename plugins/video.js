@@ -2,7 +2,7 @@ const { cmd } = require('../command')
 const axios = require('axios')
 const yts = require('yt-search')
 const ffmpeg = require('fluent-ffmpeg')
-const ffmpegPath = require('ffmpeg-static')
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path
 const fs = require('fs')
 const path = require('path')
 
