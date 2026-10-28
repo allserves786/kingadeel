@@ -76,15 +76,13 @@ cmd({
     }
 
     const caption = `
-╭────────────────────◇
-│ 🔱 𝗚𝗛𝗢𝗦𝗧-𝗠𝗗 🔱
-│  ✿━━━━━━━━━━━━━━━✿
-│ ♡⪼ 🎵 ${title.slice(0, 30)}${title.length > 30 ? '...' : ''}
-│ ♡⪼ 👩‍🎤 ${artist}
-│ ♡⪼ ⏱️ ${duration || 'Unknown'}
-│ ♡⪼ 👁️ ${views || 'N/A'} views
-│ ♡⪼ 📥 Processing...
-╰────────────────────○
+*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*│ ◉ 🎵 ${title.slice(0, 30)}${title.length > 30 ? '...' : ''}*
+*│ ◉ 👩‍🎤 ${artist}*
+*│ ◉ ⏱️ ${duration || 'Unknown'}*
+*│ ◉ 👁️ ${views || 'N/A'} views*
+*│ ◉ 📥 Processing...*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
 > 🌪️ 𝗚𝗛𝗢𝗦𝗧-𝗠𝗗 🌪️
     `;
 
