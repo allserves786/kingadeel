@@ -1,255 +1,168 @@
-const path = require('path');
-const fs = require('fs');
-const axios = require('axios');
-const config = require('../config');
+const config = require('../config')
 const { cmd, commands } = require('../command');
-const { runtime } = require('../lib/functions');
+const path = require('path');
+const os = require("os")
+const fs = require('fs');
+const {runtime} = require('../lib/functions')
+const axios = require('axios')
 
-// ─── GHOST MD SMALL CAPS ───
+// Helper function for small caps text
 const toSmallCaps = (text) => {
-    if (!text || typeof text !== 'string') return '';
-
-    const map = {
-        a:'ᴀ', b:'ʙ', c:'ᴄ', d:'ᴅ', e:'ᴇ', f:'ғ',
-        g:'ɢ', h:'ʜ', i:'ɪ', j:'ᴊ', k:'ᴋ', l:'ʟ',
-        m:'ᴍ', n:'ɴ', o:'ᴏ', p:'ᴘ', q:'ǫ', r:'ʀ',
-        s:'s', t:'ᴛ', u:'ᴜ', v:'ᴠ', w:'ᴡ', x:'x',
-        y:'ʏ', z:'ᴢ'
-    };
-
-    return text
-        .split('')
-        .map(char => map[char.toLowerCase()] || char)
-        .join('');
+if (!text || typeof text !== 'string') return '';
+const smallCapsMap = {
+'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ',
+'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ',
+'s': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
+'A': 'ᴀ', 'B': 'ʙ', 'C': 'ᴄ', 'D': 'ᴅ', 'E': 'ᴇ', 'F': 'ғ', 'G': 'ɢ', 'H': 'ʜ', 'I': 'ɪ',
+'J': 'ᴊ', 'K': 'ᴋ', 'L': 'ʟ', 'M': 'ᴍ', 'N': 'ɴ', 'O': 'ᴏ', 'P': 'ᴘ', 'Q': 'ǫ', 'R': 'ʀ',
+'S': 's', 'T': 'ᴛ', 'U': 'ᴜ', 'V': 'ᴠ', 'W': 'ᴡ', 'X': 'x', 'Y': 'ʏ', 'Z': 'ᴢ'
+};
+return text.split('').map(char => smallCapsMap[char] || char).join('');
 };
 
-// ─── VIP BOX CATEGORY DESIGN ───
+// Format category with your exact styles
 const formatCategory = (category, cmds) => {
-    const validCmds = cmds.filter(item =>
-        item.pattern &&
-        typeof item.pattern === 'string' &&
-        item.pattern.trim() !== ''
-    );
+// Filter out commands with empty or undefined patterns
+const validCmds = cmds.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');
 
-    if (!validCmds.length) return '';
+if (validCmds.length === 0) return ''; // Skip empty categories  
+  
+let title = `\n\`『 ${category.toUpperCase()} 』\`\n╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷\n`;  
+let body = validCmds.map(cmd => {  
+    const commandName = cmd.pattern || '';  
+    return `*┋ ⋄ ${toSmallCaps(commandName)}*`;  
+}).join('\n');  
+let footer = `\n╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━⊷`;  
+return `${title}${body}${footer}`;
 
-    const title = `╭━━〔 ⭐ ${toSmallCaps(category)} 〕━━╮`;
-
-    const body = validCmds.map(item =>
-        `┃ ▣ ⤷ ${toSmallCaps(item.pattern.trim())}`
-    ).join('\n');
-
-    const footer = '╰━━━━━━━━━━━━━━➤';
-
-    return `\n${title}\n${body}\n${footer}\n`;
 };
 
-// ─── IMAGE VALIDATION ───
-const validateAndFetchImage = async (url) => {
-    if (!url || typeof url !== 'string') {
-        return { valid: false };
-    }
+// Function to validate image URL
+const isValidImageUrl = (url) => {
+if (!url || typeof url !== 'string' || url.trim() === '') {
+return false;
+}
 
-    try {
-        if (!/^https?:\/\/.+/i.test(url.trim())) {
-            return { valid: false };
-        }
+const urlLower = url.toLowerCase();  
+  
+// Check image extensions  
+const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];  
+if (imageExtensions.some(ext => urlLower.endsWith(ext))) {  
+    return true;  
+}  
+  
+return false;
 
-        const response = await axios.get(url.trim(), {
-            timeout: 10000,
-            maxRedirects: 5,
-            responseType: 'arraybuffer',
-            headers: {
-                'User-Agent': 'Mozilla/5.0',
-                'Accept': 'image/*,*/*'
-            },
-            validateStatus: status =>
-                status >= 200 && status < 400
-        });
-
-        const contentType = response.headers['content-type'] || '';
-
-        if (!contentType.toLowerCase().startsWith('image/')) {
-            return { valid: false };
-        }
-
-        return {
-            valid: true,
-            buffer: Buffer.from(response.data)
-        };
-    } catch (error) {
-        console.log('Menu image validation failed:', error.message);
-        return { valid: false };
-    }
 };
 
-// ─── FALLBACK IMAGE ───
-const FALLBACK_IMAGE_URL =
-    'https://i.ibb.co/pBQN2T8t/GHOST-MD.jpg';
-
-// ─── MENU COMMAND ───
 cmd({
-    pattern: 'menu',
-    alias: ['m', 'help', 'allmenu', 'fullmenu'],
-    use: '.menu',
-    desc: 'Show all bot commands',
-    category: 'main',
-    react: '⚡',
-    filename: __filename
+pattern: "menu",
+alias: ["m", "help", "allmenu","fullmenu"],
+use: '.menu',
+desc: "Show all bot commands",
+category: "main",
+react: "⚡",
+filename: __filename
 },
-async (
-    conn, mek, m,
-    { from, pushname, reply, userConfig }
-) => {
-    try {
-        await conn.sendPresenceUpdate('composing', from);
+async (conn, mek, m, { from, quoted, body, isCmd, command, args, q, isGroup, sender, senderNumber, botNumber2, botNumber, pushname, isMe, isOwner, groupMetadata, groupName, participants, groupAdmins, isBotAdmins, isAdmins, reply, userConfig }) => {
+try {
+// Show typing presence before processing
+await conn.sendPresenceUpdate('composing', from);
 
-        // Automatically read registered commands
-        const allCommands = Object.values(commands);
-        const totalCommands = allCommands.length;
+let totalCommands = Object.keys(commands).length;  
+      
+    // Get all unique categories and filter out undefined/null categories  
+    const categories = [...new Set(Object.values(commands).map(c => c.category))].filter(cat =>   
+        cat && cat.trim() !== '' && cat !== 'undefined'  
+    );  
+      
+    // Organize commands by category and filter out empty categories  
+    const categorized = {};  
+    categories.forEach(cat => {  
+        const categoryCommands = Object.values(commands).filter(c => c.category === cat);  
+        // Only add category if it has valid commands  
+        const validCommands = categoryCommands.filter(cmd => cmd.pattern && cmd.pattern.trim() !== '');  
+        if (validCommands.length > 0) {  
+            categorized[cat] = validCommands;  
+        }  
+    });  
 
-        const categorized = {};
+    // Build menu sections - only for categories that have commands  
+    let menuSections = '';  
+    for (const [category, cmds] of Object.entries(categorized)) {  
+        if (cmds && cmds.length > 0) {  
+            const section = formatCategory(category, cmds);  
+            if (section !== '') {  
+                menuSections += section;  
+            }  
+        }  
+    }  
 
-        for (const item of allCommands) {
-            const category = item.category;
-
-            if (
-                !category ||
-                typeof category !== 'string' ||
-                !category.trim() ||
-                category === 'undefined' ||
-                !item.pattern ||
-                typeof item.pattern !== 'string' ||
-                !item.pattern.trim()
-            ) {
-                continue;
-            }
-
-            if (!categorized[category]) {
-                categorized[category] = [];
-            }
-
-            categorized[category].push(item);
-        }
-
-        // Sort categories alphabetically
-        const sortedCategories = Object.keys(categorized).sort(
-            (a, b) => a.localeCompare(b)
-        );
-
-        let menuSections = '';
-
-        for (const category of sortedCategories) {
-            menuSections += formatCategory(
-                category,
-                categorized[category]
-            );
-        }
-
-        // ─── CONFIG VALUES ───
-        const BOT_NAME =
-            userConfig?.BOT_NAME ||
-            config.BOT_NAME ||
-            '𝐆𝐇𝐎𝐒𝐓 𝐌𝐃';
-
-        const OWNER_NAME =
-            userConfig?.OWNER_NAME ||
-            config.OWNER_NAME ||
-            'MAFIA ADEEL';
-
-        const PREFIX =
-            userConfig?.PREFIX ||
-            config.PREFIX ||
-            '.';
-
-        const MODE =
-            userConfig?.MODE ||
-            config.MODE ||
-            'private';
-
-        const VERSION =
-            userConfig?.VERSION ||
-            config.VERSION ||
-            '1.0.0';
-
-        const DESCRIPTION =
-            userConfig?.DESCRIPTION ||
-            config.DESCRIPTION ||
-            '';
-
-        const BOT_IMAGE =
-            userConfig?.BOT_IMAGE ||
-            userConfig?.BOT_MEDIA_URL ||
-            config.BOT_IMAGE ||
-            config.BOT_MEDIA_URL;
-
-        // ─── VIP MAIN MENU BOX ───
-        const dec = `╭━━〔 💀 ${BOT_NAME} 〕━━╮
-┃ 👑 𝐎𝐖𝐍𝐄𝐑 : ${OWNER_NAME}
-┃ ⚡ 𝐂𝐎𝐌𝐌𝐀𝐍𝐃𝐒 : ${totalCommands}
-┃ ⏱️ 𝐑𝐔𝐍𝐓𝐈𝐌𝐄 : ${runtime(process.uptime())}
-┃ 📌 𝐏𝐑𝐄𝐅𝐈𝐗 : ${PREFIX}
-┃ ⚙️ 𝐌𝐎𝐃𝐄 : ${MODE}
-┃ 🏷️ 𝐕𝐄𝐑𝐒𝐈𝐎𝐍 : ${VERSION}
-╰━━━━━━━━━━━━━━➤
+    // Get all values from userConfig with fallback to config  
+    const BOT_NAME = userConfig?.BOT_NAME || config.BOT_NAME || "𝐆ʜᴏᴀᴛs-𝐱ᴅ";  
+    const OWNER_NAME = userConfig?.OWNER_NAME || config.OWNER_NAME || "ᴀᴅᴇᴇʟxǫᴀᴅᴇᴇʀ";  
+    const PREFIX = userConfig?.PREFIX || config.PREFIX || ".";  
+    const MODE = userConfig?.MODE || config.MODE || "public";  
+    const VERSION = userConfig?.VERSION || config.VERSION || "3.0.1";  
+    const DESCRIPTION = userConfig?.DESCRIPTION || config.DESCRIPTION || "";  
+      
+    // Get BOT_IMAGE from userConfig first, then config.BOT_IMAGE, then config.BOT_MEDIA_URL  
+    const BOT_IMAGE = userConfig?.BOT_IMAGE || userConfig?.BOT_MEDIA_URL || config.BOT_IMAGE || config.BOT_MEDIA_URL;  
+      
+    // Main menu text with new bar styles  
+    let dec =  `*╭┈───〔 ${BOT_NAME} 〕┈───⊷*
+*┋⋄ ➠  Owner: ${OWNER_NAME}*
+*┋⋄ ➠  Commands: ${totalCommands}*
+*┋⋄ ➠  Runtime: ${runtime(process.uptime())}*
+*┋⋄ ➠  Prefix: ${PREFIX}*
+*┋⋄ ➠  Mode: ${MODE}*
+*┋⋄ ➠  Version: ${VERSION}*
+╰───────────────────⊷
 ${menuSections}
-╭━━〔 ⚡ 𝐏𝐎𝐖𝐄𝐑𝐄𝐃 𝐁𝐘 〕━━╮
-┃ 👑 𝐌𝐀𝐅𝐈𝐀 𝐀𝐃𝐄𝐄𝐋 💀🚩
-╰━━━━━━━━━━━━━━➤
-${DESCRIPTION}`;
 
-        // ─── IMAGE SOURCE ───
-        let imageToSend;
+> ${DESCRIPTION || ''}`;
 
-        let imageValidation =
-            await validateAndFetchImage(BOT_IMAGE);
 
-        if (!imageValidation.valid) {
-            imageValidation =
-                await validateAndFetchImage(FALLBACK_IMAGE_URL);
-        }
 
-        if (imageValidation.valid) {
-            imageToSend = imageValidation.buffer;
-        }
+// Determine which image to use  
+    let imageToUse;  
+    const localImagePath = path.join(__dirname, '../lib/qadeer.jpg');  
+      
+    // Check if BOT_IMAGE is a valid image URL  
+    if (isValidImageUrl(BOT_IMAGE)) {  
+        try {  
+            // Check if server is accessible (timeout after 3 seconds)  
+            await axios.head(BOT_IMAGE, { timeout: 3000 });  
+            // Server is up, use the URL image  
+            imageToUse = BOT_IMAGE;  
+        } catch (serverError) {  
+            // Server is down or inaccessible, use local image  
+            console.log('Image server down, using local image:', serverError.message);  
+            imageToUse = localImagePath;  
+        }  
+    } else {  
+        // Invalid image URL format, use local image  
+        imageToUse = localImagePath;  
+    }  
 
-        const contextInfo = {
-            mentionedJid: m.sender ? [m.sender] : []
-        };
+    await conn.sendMessage(from, {   
+        image: { url: imageToUse },  
+        caption: dec,   
+        contextInfo: {   
+            mentionedJid: [m.sender],   
+            forwardingScore: 999,   
+            isForwarded: true,   
+            forwardedNewsletterMessageInfo: {   
+                newsletterJid: '120363418906972955@newsletter',   
+                newsletterName: BOT_NAME,   
+                serverMessageId: 143   
+            }   
+        }   
+    }, { quoted: mek });  
 
-        // Send image if available, otherwise send text
-        if (imageToSend) {
-            await conn.sendMessage(from, {
-                image: imageToSend,
-                caption: dec,
-                contextInfo
-            }, { quoted: mek });
-        } else {
-            await conn.sendMessage(from, {
-                text: dec,
-                contextInfo
-            }, { quoted: mek });
-        }
+} catch (e) {   
+    console.log(e);   
+    reply(`Error: ${e}`);   
+}
 
-        // ─── OPTIONAL MENU AUDIO ───
-        const audioPath = path.join(
-            __dirname,
-            '../assets/menu.mp3'
-        );
-
-        if (fs.existsSync(audioPath)) {
-            const audioBuffer = fs.readFileSync(audioPath);
-
-            await conn.sendMessage(from, {
-                audio: audioBuffer,
-                mimetype: 'audio/mpeg',
-                ptt: true,
-                fileName: 'Menu.mp3'
-            }, { quoted: mek });
-        }
-
-    } catch (error) {
-        console.error('GHOST-MD menu error:', error);
-        reply(`Menu Error: ${error.message || error}`);
-    }
 });
