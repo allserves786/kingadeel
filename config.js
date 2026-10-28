@@ -25,7 +25,7 @@ const config = {
     AUTO_TYPING: 'false',
     ALWAYS_ONLINE: 'false',
     VERSION: '4.0.0 Bᴇᴛᴀ',
-    DESCRIPTION: '*© POWERED BY 𝐆ʜᴏsᴛ-𝐌ᴅ*',
+    DESCRIPTION: '*© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*',
     ANTI_DELETE_PATH: 'inbox',
     ANTI_DELETE: 'false',
     ANTI_EDIT_PATH: 'inbox',
@@ -77,7 +77,7 @@ const config = {
     BOT_NAME: '𝐆ʜᴏsᴛ-𝐌ᴅ',
     OWNER_NAME: '𝐆ʜᴏsᴛ-𝐌ᴅ',
     OWNER_NUMBER: '923174838990',
-    DEV: '923174838990',
+    DEV: '923300005253',
     IK_IMAGE_PATH: './lib/love.jpg',
     BOT_IMAGE: 'https://i.ibb.co/wrY65Sg0/GHOST-MD.jpg',
     
