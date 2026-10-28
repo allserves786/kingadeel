@@ -1,50 +1,66 @@
-// plugins/ping.js — Ghost-MD
-const path = require('path');
-const fs = require('fs');
-const { cmd } = require('../command');
+const { cmd } = require('../command')
+const config = require('../config')
+const moment = require('moment-timezone')
 
 cmd({
     pattern: "ping",
-    alias: ["speed", "pong", "latency"],
-    use: '.ping',
-    desc: "Check bot response speed",
-    category: "main",
-    react: "💎",
+    alias: ["latency", "speed", "pong"],
+    desc: "Check bot latency and response time",
+    category: "general",
+    react: "🚀",
     filename: __filename
-},
-
-async (conn, mek, m, { from, sender, reply }) => {
+}, async (conn, mek, m, { from, reply, sender }) => {
     try {
-        const start = Date.now();
-        const ms = (Date.now() - start).toFixed(0);
+        const startPing = Date.now()
 
         await conn.sendMessage(from, {
-            text: `\`\`\`𝐏๏፝֟ƞ̽g ${ms}𝐌s 🛡️\`\`\``,
-            contextInfo: {
-                mentionedJid: [sender],
-                forwardingScore: 999,
-                isForwarded: true,
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363404811118873@newsletter',
-                    newsletterName: "𝐆ʜᴏsᴛ-𝐌ᴅ",
-                    serverMessageId: 143
-                }
+            react: {
+                text: "⏳",
+                key: mek.key
             }
-        }, { quoted: mek });
+        })
 
-        // Optional audio
-        const audioPath = path.join(__dirname, '../assets/menu.mp3');
-        if (fs.existsSync(audioPath)) {
-            await conn.sendMessage(from, {
-                audio: fs.readFileSync(audioPath),
-                mimetype: 'audio/mp4',
-                ptt: true,
-                fileName: 'GhostMD_Ping.mp3'
-            }, { quoted: mek });
-        }
+        const latency = Date.now() - startPing
 
-    } catch (e) {
-        console.error("ping error:", e);
-        reply(`*Error:* ${e.message}`);
+        const currentTime = moment().tz("Asia/Karachi").format("HH:mm:ss")
+        const currentDate = moment().tz("Asia/Karachi").format("dddd, MMMM Do YYYY")
+
+        const memoryUsage = process.memoryUsage()
+        const memUsed = (memoryUsage.heapUsed / 1024 / 1024).toFixed(2)
+        const memTotal = (memoryUsage.heapTotal / 1024 / 1024).toFixed(2)
+
+        const caption = 
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* 🏓 *𝐆ʜᴏsᴛ - xᴅ ᴘɪɴɢ*
+*┇•* 👤 *ᴜꜱᴇʀ: @${sender.split('@')[0]}*
+*┇•* ⏱️ *ʟᴀᴛᴇɴᴄʏ: ${latency}ᴍꜱ*
+*┇•* 📡 *ꜱᴛᴀᴛᴜꜱ: ${
+    latency < 100 ? '🟢 ᴇxᴄᴇʟʟᴇɴᴛ' :
+    latency < 300 ? '🟡 ɢᴏᴏᴅ' :
+    '🔴 ꜱʟᴏᴡ'
+}*
+*┇•* 🕒 *ᴛɪᴍᴇ: ${currentTime}*
+*┇•* 📅 *ᴅᴀᴛᴇ: ${currentDate}*
+*┇•* 💾 *ᴍᴇᴍᴏʀʏ: ${memUsed}ᴍʙ / ${memTotal}ᴍʙ*
+*┇•* ✅ *ʙᴏᴛ: ᴀᴄᴛɪᴠᴇ & ʀᴜɴɴɪɴɢ*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+
+> _ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ_`
+
+        await conn.sendMessage(from, {
+            text: caption,
+            mentions: [sender]
+        }, { quoted: mek })
+
+        await conn.sendMessage(from, {
+            react: {
+                text: latency < 100 ? "🟢" : latency < 300 ? "🟡" : "🔴",
+                key: mek.key
+            }
+        })
+
+    } catch (err) {
+        console.error(err)
+        reply("❌ *An error occurred while checking ping*")
     }
-});
+})
