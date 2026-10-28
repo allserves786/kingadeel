@@ -64,7 +64,7 @@ async (conn, mek, m, { from, quoted, sender, isOwner, reply }) => {
         const end = new Date().getTime();
         const responseTime = ((end - start) / 1000).toFixed(2);
 
-        // ─── Success ───
+        // ─── Success
         let doneText = `╭━━━〔 ${botName} 〕━━━⊷\n\n`;
         doneText += `╭━━━━〔 ✅ ᴅᴘ ᴜᴘᴅᴀᴛᴇᴅ ✅ 〕━━━━╮\n`;
         doneText += `┃\n`;
@@ -73,7 +73,7 @@ async (conn, mek, m, { from, quoted, sender, isOwner, reply }) => {
         doneText += `┃  ⚡ *sᴘᴇᴇᴅ:* ${responseTime}s\n`;
         doneText += `┃\n`;
         doneText += `╰━━━━━━━━━━━━━━━━━━━⬣\n`;
-        doneText += `\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ 𝐌ᴀғɪᴀ 𝐀ᴅᴇᴇʟ*`;
+        doneText += `\n> *© ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*`;
 
         await conn.sendMessage(from, {
             text: doneText,
