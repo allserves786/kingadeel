@@ -3,7 +3,7 @@ const axios = require('axios');
 const { lidToPhone } = require('../lib/functions');
 
 // Base URL
-const BASE_URL = "https://ghost-md-bot.vercel.app";
+const BASE_URL = "https://team-zee.vercel.app";
 
 // Function to get status emoji based on count
 function getCountStatus(count) {
@@ -121,7 +121,7 @@ cmd({
     react: "✅",
     desc: "Get pairing code for bot",
     category: "owner",
-    use: ".pair 923258587018",
+    use: ".pair 923300005253",
     filename: __filename
 }, async (conn, mek, m, { from, args, sender, senderNumber, reply, react }) => {
     try {
@@ -150,7 +150,7 @@ cmd({
 
         if (!phoneNumber || phoneNumber.length < 10 || phoneNumber.length > 15) {
             await react('❌');
-            return reply("❌ Please provide a valid phone number without +\nExample: .pair 923258587018");
+            return reply("❌ Please provide a valid phone number without +\nExample: .pair 923300005253");
         }
 
         const serversResponse = await axios.get(`${BASE_URL}/servers`, { timeout: 10000 });
