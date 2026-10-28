@@ -42,7 +42,7 @@ cmd({
 
         const { title, thumbnail, high } = data.data;
 
-        const caption = `🎬 *Facebook Video Downloader*\n\n📖 *Title:* ${title}\n\n🔰 *${userConfig?.CAPTION || "Powered by 𝐌ᴀғɪᴀ 𝐀ᴅᴇᴇʟ"}*`;
+        const caption = `🎬 *Facebook Video Downloader*\n\n📖 *Title:* ${title}\n\n🔰 *${userConfig?.CAPTION || "Powered by ᴛᴇᴀᴍ ᴢᴇᴇ"}*`;
 
         await conn.sendMessage(from, { 
             video: { url: high }, 
