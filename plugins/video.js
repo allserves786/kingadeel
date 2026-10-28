@@ -104,6 +104,31 @@ async function getVideoInfo(q) {
     return info
 }
 
+// ============ SAFE VIDEO SEND ============
+// Pehle URL se bhejta hai, fail ho to buffer download karke bhejta hai
+async function sendVideoSafe(conn, from, mek, downloadUrl, caption) {
+    try {
+        await conn.sendMessage(from, {
+            video: { url: downloadUrl },
+            mimetype: 'video/mp4',
+            caption
+        }, { quoted: mek })
+    } catch (e) {
+        console.error('[VIDEO] url send failed, buffer try:', e.message)
+        const { data } = await axios.get(downloadUrl, {
+            responseType: 'arraybuffer',
+            timeout: 180000,
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        })
+        await conn.sendMessage(from, {
+            video: Buffer.from(data),
+            mimetype: 'video/mp4',
+            caption
+        }, { quoted: mek })
+    }
+}
+
 // ============ TIME PARSER (trim ke liye) ============
 // "00:00:10" -> 10, "01:02" -> 62, "30" -> 30. Ghalat format par NaN.
 function timeToSeconds(t) {
@@ -204,11 +229,18 @@ Sahi tareeqa: .video <link> trim 00:00:10 00:00:30
 *╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`
 
         // Thumbnail + info pehle
-        if (info.thumbnail) {
-            await conn.sendMessage(from, {
-                image: { url: info.thumbnail },
-                caption: infoCaption
-            }, { quoted: mek })
+        try {
+            if (info.thumbnail) {
+                await conn.sendMessage(from, {
+                    image: { url: info.thumbnail },
+                    caption: infoCaption
+                }, { quoted: mek })
+            } else {
+                await reply(infoCaption)
+            }
+        } catch (e) {
+            console.error('[VIDEO] thumbnail send failed:', e.message)
+            try { await reply(infoCaption) } catch (e2) {}
         }
 
         const poweredCaption =
@@ -232,21 +264,17 @@ Sahi tareeqa: .video <link> trim 00:00:10 00:00:30
             await trimVideo(tempInput, tempOutput, trimStart, trimDuration)
 
             await conn.sendMessage(from, {
-                video: { url: tempOutput },
+                video: fs.readFileSync(tempOutput),
                 mimetype: 'video/mp4',
                 caption: poweredCaption
             }, { quoted: mek })
         } else {
-            await conn.sendMessage(from, {
-                video: { url: result.downloadUrl },
-                mimetype: 'video/mp4',
-                caption: poweredCaption
-            }, { quoted: mek })
+            await sendVideoSafe(conn, from, mek, result.downloadUrl, poweredCaption)
         }
 
     } catch (err) {
-        console.error(err)
-        reply("❌ *An error occurred while downloading video*")
+        console.error('[VIDEO] ERROR:', err)
+        reply(`❌ *An error occurred while downloading video*\n\n_${err.message || err}_`)
     } finally {
         // Cleanup temp files
         for (const f of [tempInput, tempOutput]) {
@@ -310,7 +338,7 @@ Example:
         }, { quoted: mek })
 
     } catch (err) {
-        console.error(err)
-        reply("❌ *An error occurred while downloading video*")
+        console.error('[VIDEODOC] ERROR:', err)
+        reply(`❌ *An error occurred while downloading video*\n\n_${err.message || err}_`)
     }
 })
