@@ -16,59 +16,83 @@ async (conn, mek, m, { from, q, reply, react }) => {
         // Check URL
         if (!q) {
             return reply(
-                "❌ Please provide an Instagram Reel/Post URL.\n\nExample:\n.instagram https://www.instagram.com/reel/xxxxx/"
+`❌ *Please provide an Instagram Reel/Post URL*
+Example:
+.instagram https://www.instagram.com/reel/xxxxx/`
             );
         }
 
-        // React loading - FIXED: Use conn.sendMessage for reaction like working command
+        // React loading
         await conn.sendMessage(from, { react: { text: '⬇️', key: m.key } });
 
-        // New API URL
+        await reply("⏳ *ꜱᴇᴀʀᴄʜɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*");
+
+        // API URL
         const apiUrl = `https://jerrycoder.oggyapi.workers.dev/down/insta?url=${encodeURIComponent(q)}`;
 
         // Fetch API Data
         const { data } = await axios.get(apiUrl);
 
-        // Validate response - FIXED: Check exact status string and data structure
+        // Validate response
         if (!data || data.status !== "success" || !data.data || !data.data.url) {
             await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
-            return reply("❌ Failed to fetch Instagram media. Try another link.");
+            return reply("❌ *Failed to fetch Instagram media. Try another link*");
         }
 
-        // Get media data - FIXED: Use data.data (not data.result array)
+        // Get media data
         const media = data.data;
 
-        // Send info message with thumbnail - FIXED: Similar to working YouTube command
-        await conn.sendMessage(from, {
-            image: { url: media.thumbnail },
-            caption: `🎬 *INSTAGRAM DOWNLOADER*\n\n` +
-            `📦 *Type:* ${media.type || 'Unknown'}\n` +
-            `🖼 *Thumbnail:* ${media.thumbnail ? 'Available' : 'Not Found'}\n` +
-            `⚡ *Ping:* ${data.ping || 'Fast'}\n` +
-            `👤 *Creator:* ${data.creator || 'Unknown'}\n` +
-            `🖥 *Server:* ${data.server || 'Unknown'}\n\n` +
-            `*Status:* Downloading media... Please wait.\n\n` +
-            `> *📌 ᴘᴏᴡᴇʀ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ*`
-        }, { quoted: mek });
+        await reply("⬇️ *ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ...*");
 
-        // Send the video - FIXED: Stream directly from URL like working YouTube command
+        const infoCaption =
+`*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* 🎥 *𝐆ʜᴏsᴛ - xᴅ ɪɴsᴛᴀ ᴅʟ*
+*┇•* 📦 *ᴛʏᴘᴇ: ${media.type || 'Unknown'}*
+*┇•* ⚡ *ᴘɪɴɢ: ${data.ping || 'Fast'}*
+*┇•* 👤 *ᴄʀᴇᴀᴛᴏʀ: ${data.creator || 'Unknown'}*
+*┇•* 🖥️ *sᴇʀᴠᴇʀ: ${data.server || 'Unknown'}*
+*┇•* 📥 *ꜱᴛᴀᴛᴜꜱ: ᴅᴏᴡɴʟᴏᴀᴅɪɴɢ...*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
+
+        // Thumbnail + info pehle
+        try {
+            if (media.thumbnail) {
+                await conn.sendMessage(from, {
+                    image: { url: media.thumbnail },
+                    caption: infoCaption
+                }, { quoted: mek });
+            } else {
+                await reply(infoCaption);
+            }
+        } catch (e) {
+            console.error("Instagram thumbnail send failed:", e.message);
+            try { await reply(infoCaption); } catch (e2) {}
+        }
+
+        const poweredCaption =
+`
+*╭┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*
+*┇•* *_ᴘᴏᴡᴇʀᴇᴅ ʙʏ ᴛᴇᴀᴍ ᴢᴇᴇ_*
+*╰┉┉┉┉┉┉┉┉┉┉┉┉┉┉━┈᛭*`;
+
+        // Send the video - stream directly from URL
         if (media.type === "video") {
 
             await conn.sendMessage(from, {
-                video: { url: media.url },  // FIXED: Use { url: media.url } instead of Buffer
-                caption: `> *𝐌ᴀғɪᴀ 𝐀ᴅᴇᴇʟ*`
+                video: { url: media.url },
+                caption: poweredCaption
             }, { quoted: mek });
 
         } else {
 
-            // Send image if image type - FIXED: Same streaming approach
+            // Send image if image type
             await conn.sendMessage(from, {
-                image: { url: media.url },  // FIXED: Use { url: media.url } instead of Buffer
-                caption: `> *𝐌ᴀғɪᴀ 𝐀ᴅᴇᴇʟ*`
+                image: { url: media.url },
+                caption: poweredCaption
             }, { quoted: mek });
         }
 
-        // Success reaction - FIXED: Use conn.sendMessage for reaction
+        // Success reaction
         await conn.sendMessage(from, { react: { text: '✅', key: m.key } });
 
     } catch (e) {
@@ -77,8 +101,6 @@ async (conn, mek, m, { from, q, reply, react }) => {
 
         await conn.sendMessage(from, { react: { text: '❌', key: m.key } });
 
-        reply(
-            "❌ An error occurred while downloading Instagram media.\nPlease try again later."
-        );
+        reply(`❌ *An error occurred while downloading Instagram media*\n\n_${e.message || 'Please try again later'}_`);
     }
 });
